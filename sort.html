@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sort Visualizer</title>
+    <link rel="stylesheet" href="sort.css">
+</head>
+<body>
+    <style>
+.code-line {
+    /* This forces the browser to show every space exactly as typed */
+    white-space: pre; 
+    font-family: monospace; /* Makes it look like code */
+}
+</style>
+    <div class="full">
+
+        <!-- header -->
+         <div class="top_bar">
+            <h1> <span id="headTop">Sorting</span> Visualizer</h1>
+            <select name="algo" id="algo">
+                <option >Bubble Sort</option>
+                <option >Quick Sort</option>
+                <option >Merge Sort</option>
+            </select>
+
+            <button id="newArrBtn">newArray</button>
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn">Pause</button>
+            <button id="resetBtn">Reset</button>
+         </div>
+
+         <div class="mainContent">
+
+            <div class="leftContent">
+                <div class="visualizationPart">
+                <div id="arrayContainer"></div>
+                </div>
+
+                <div class="explanationPart">
+                    <h3>Explanation</h3>
+                    <p id="explanationText">
+                        <!-- explanation going on -->
+                    </p>
+                </div>
+            </div>
+
+            <div class="rightContent">
+
+                <div class="statusPart">
+                    <div class="statBox">
+                        <h4>Comparisons</h4>
+                        <p id="comparisonCount"></p>
+                    </div>
+
+                    <div class="statBox">
+                        <h4>Swaps</h4>
+                        <p id="swapCount"></p>
+                    </div>
+
+                    <div class="statBox">
+                        <h4>Time Complexity</h4>
+                        <p id="timeComplexity"></p>
+                    </div>
+                     <div class="statBox">
+                        <h4>Space Complexity</h4>
+                        <p id="spaceComplexity"></p>
+                    </div>
+                </div>
+
+                <div class="codePart">
+                    <h3>Code</h3>
+                    <div id="codeContainer"></div>
+                </div>
+
+            </div>
+         </div>
+
+        </div>
+    <script src="main.js"></script>
+    
+</body>
+</html>
