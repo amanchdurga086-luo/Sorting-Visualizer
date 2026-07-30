@@ -1,652 +1,209 @@
-// ARRAY + BARS
-let arr = [];
-let bars = [];
+import { sortingAlgorithms } from "./algorithms/index.js";
+import { clearBarColors, drawBars, markBarsSorted } from "./services/ArrayRenderer.js";
+import { createSortingOperations } from "./services/SortingOperations.js";
+import { createStatistics } from "./services/Statistics.js";
+import { loadTheme, toggleTheme } from "./services/ThemeManager.js";
 
+const elements = {
+  arrayContainer: document.getElementById("arrayContainer"),
+  algorithmSelect: document.getElementById("algorithmSelect"),
+  sizeSlider: document.getElementById("sizeSlider"),
+  speedSlider: document.getElementById("speedSlider"),
+  sizeValue: document.getElementById("sizeValue"),
+  speedValue: document.getElementById("speedValue"),
+  startButton: document.getElementById("startButton"),
+  pauseButton: document.getElementById("pauseButton"),
+  resetButton: document.getElementById("resetButton"),
+  newArrayButton: document.getElementById("newArrayButton"),
+  themeToggle: document.getElementById("themeToggle"),
+  statusText: document.getElementById("statusText"),
+  visualizerTitle: document.getElementById("visualizerTitle"),
+  algorithmName: document.getElementById("algorithmName"),
+  algorithmDescription: document.getElementById("algorithmDescription"),
+  codeContainer: document.getElementById("codeContainer"),
+  bestComplexity: document.getElementById("bestComplexity"),
+  averageComplexity: document.getElementById("averageComplexity"),
+  worstComplexity: document.getElementById("worstComplexity"),
+  spaceComplexity: document.getElementById("spaceComplexity"),
+  comparisonCount: document.getElementById("comparisonCount"),
+  swapCount: document.getElementById("swapCount"),
+  elapsedTime: document.getElementById("elapsedTime"),
+  actionMessage: document.getElementById("actionMessage"),
+  explanationText: document.getElementById("explanationText")
+};
 
-// HTML ELEMENTS
-const arrayContainer = document.getElementById("arrayContainer");
+const speedLabels = ["", "Very slow", "Slow", "Medium", "Fast", "Very fast"];
+const statistics = createStatistics(elements.comparisonCount, elements.swapCount, elements.elapsedTime);
 
-const startBtn = document.getElementById("startBtn");
-
-const newArrBtn = document.getElementById("newArrBtn");
-
-const pauseBtn = document.getElementById("pauseBtn");
-
-const resetBtn = document.getElementById("resetBtn");
-
-const explanationText = document.getElementById("explanationText");
-
-const comparisonCount = document.getElementById("comparisonCount");
-
-const swapCount = document.getElementById("swapCount");
-
-const codeContainer = document.getElementById("codeContainer");
-
-const algoSelect = document.getElementById("algo");
-
-const timeComplexity = document.getElementById("timeComplexity");
-
-const spaceComplexity = document.getElementById("spaceComplexity");
-
-
-// VARIABLES
-let comparisons = 0;
-
-let swaps = 0;
-
-let isPaused = false;
-
-let stopSorting = false;
-
+let arrayValues = [];
+let originalArray = [];
 let isSorting = false;
+let isPaused = false;
+let shouldStopSorting = false;
+let currentRun = 0;
+let startTime = 0;
+let timerFrame;
+let pauseStartedAt = 0;
 
-let currentSession = 0;
-
-
-// CODE LINES
-
-
-const bubbleCode = [
-    "for(let i = 0; i < n; i++):",
-    "  for(let j = 0; j < n-i-1; j++):",
-    "    if(arr[j] > arr[j+1])",
-    "    swap(arr[j], arr[j+1])"
-];
-
-const quickCode = [
-    "quickSort(array, low, high):",
-    "  if low < high then",
-    "    pivotIndex = partition(array, low, high)",
-    "    quickSort(array, low, pivotIndex - 1)",
-    "    quickSort(array, pivotIndex + 1, high)",
-        "    ",
-    "partition(array, low, high):",
-    "  i = left + 1",
-    "  j = right",
-    "  while(i <= j)",
-    "    while(i <= right && arr[pivot] >= arr[i])",
-    "      i++;",
-    "    while(j >= left+1 && arr[pivot] < arr[j])",
-    "      j--;",
-    "    if(i < j)",
-    "      swap(arr[i], arr[j])",
-    "  swap(arr[pivot], arr[j])",
-    "  return j;"    
-];
-
-const mergeCode = [
-    "mergeSort(A, left, right):",
-    "  if left < right:",
-    "    mid = (left + right) / 2",
-    "    mergeSort(A, left, mid)",
-    "    mergeSort(A, mid + 1, right)",
-    "    merge(A, left, mid, right)"
-];
-
-
-// RENDER CODE
-function renderCode()
-{
-    codeContainer.innerHTML = "";
-
-    let selectedAlgo = algoSelect.value;
-
-    let selectedCode = [];
-
-    if(selectedAlgo === "Bubble Sort")
-    {
-        selectedCode = bubbleCode;
-        timeComplexity.innerText = "O(n²)";
-        spaceComplexity.innerText = "O(1)";
-    }
-
-    else if(selectedAlgo === "Quick Sort")
-    {
-        selectedCode = quickCode;
-        timeComplexity.innerText = "O(n²)";
-        spaceComplexity.innerText = "O(log n)";
-
-    }
-
-    else if(selectedAlgo === "Merge Sort")
-    {
-        selectedCode = mergeCode;
-        timeComplexity.innerText = "O(n log n)";
-        spaceComplexity.innerText = "O(n)";
-
-    }
-
-    selectedCode.forEach((line, idx) => {
-
-        let p = document.createElement("p");
-
-        p.innerText = line;
-
-        p.id = `line-${idx}`;
-
-        codeContainer.appendChild(p);
-    });
+function updateMessage(message) {
+  elements.actionMessage.textContent = message;
+  elements.explanationText.textContent = message;
 }
 
-
-// EXPLAIN
-function explain(text)
-{
-    explanationText.innerText = text;
+function updateStatus(message, isBusy) {
+  elements.statusText.innerHTML = `<span></span> ${message}`;
+  elements.statusText.classList.toggle("is-busy", isBusy);
 }
 
-
-// UPDATE STATS
-function updateStats()
-{
-    comparisonCount.innerText = comparisons;
-
-    swapCount.innerText = swaps;
+function generateArray() {
+  stopCurrentSort();
+  arrayValues = Array.from(
+    { length: Number(elements.sizeSlider.value) },
+    () => Math.floor(Math.random() * 88) + 12
+  );
+  originalArray = [...arrayValues];
+  statistics.reset();
+  drawBars(elements.arrayContainer, arrayValues);
+  updateMessage("A new random array is ready. Press Start sorting to visualize the algorithm.");
+  updateStatus("Ready to sort", false);
 }
 
-
-// GENERATE ARRAY
-function generateArray()
-{
-    arr = [];
-
-    arrayContainer.innerHTML = "";
-
-    for(let i = 0; i < 10; i++)
-    {
-        let value = Math.floor(Math.random() * 250) + 20;
-
-        arr.push(value);
-
-        let bar = document.createElement("div");
-
-        bar.classList.add("bar");
-
-        bar.style.height = `${value}px`;
-
-        bar.innerText = value;
-
-        arrayContainer.appendChild(bar);
-    }
-
-    bars = document.getElementsByClassName("bar");
-
-    comparisons = 0;
-
-    swaps = 0;
-
-    updateStats();
+function updateAlgorithmInfo() {
+  const algorithm = sortingAlgorithms[elements.algorithmSelect.value];
+  elements.visualizerTitle.textContent = algorithm.name;
+  elements.algorithmName.textContent = algorithm.name;
+  elements.algorithmDescription.textContent = algorithm.description;
+  elements.codeContainer.textContent = algorithm.code;
+  elements.bestComplexity.textContent = algorithm.complexity.best;
+  elements.averageComplexity.textContent = algorithm.complexity.average;
+  elements.worstComplexity.textContent = algorithm.complexity.worst;
+  elements.spaceComplexity.textContent = algorithm.complexity.space;
+  clearBarColors(elements.arrayContainer);
+  updateMessage(algorithm.intro);
 }
 
-
-// UPDATE BAR
-function updateBar(index, value, color = "#60a5fa")
-{
-    if(!bars[index]) return;
-
-    bars[index].style.height = `${value}px`;
-
-    bars[index].style.background = color;
-
-    bars[index].innerText = value;
+function setSortingControls(disabled) {
+  elements.startButton.disabled = disabled;
+  elements.pauseButton.disabled = !disabled;
+  elements.algorithmSelect.disabled = disabled;
+  elements.sizeSlider.disabled = disabled;
 }
 
-
-// SLEEP
-function sleep(ms)
-{
-    return new Promise(resolve =>
-        setTimeout(resolve, ms)
-    );
+function setPauseButtonText(isResume) {
+  elements.pauseButton.innerHTML = isResume
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg> Resume'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M17 5v14"/></svg> Pause';
 }
 
-
-// PAUSE CHECK
-async function checkPaused(session)
-{
-    while(isPaused)
-    {
-        if(stopSorting || session !== currentSession)
-        {
-            return true;
-        }
-
-        await sleep(100);
-    }
-
-    return stopSorting || session !== currentSession;
+function updateTimer() {
+  if (!isSorting) return;
+  if (!isPaused) statistics.setTime(performance.now() - startTime);
+  timerFrame = requestAnimationFrame(updateTimer);
 }
 
-
-// BUBBLE SORT
-async function bubbleSort(session)
-{
-    let n = arr.length;
-
-    for(let i = 0; i < n; i++)
-    {
-        for(let j = 0; j < n-i-1; j++)
-        {
-            if(stopSorting || session !== currentSession)
-                return;
-
-            if(await checkPaused(session))
-                return;
-
-            comparisons++;
-
-            updateStats();
-
-            updateBar(j, arr[j], "red");
-
-            updateBar(j+1, arr[j+1], "red");
-
-            explain(`Comparing ${arr[j]} and ${arr[j+1]}`);
-
-            await sleep(300);
-
-            if(stopSorting || session !== currentSession)
-                return;
-
-            if(arr[j] > arr[j+1])
-            {
-                swaps++;
-
-                updateStats();
-
-                explain(`Swapping ${arr[j]} and ${arr[j+1]}`);
-
-                updateBar(j, arr[j], "purple");
-
-                updateBar(j+1, arr[j+1], "purple");
-
-                await sleep(300);
-
-                if(stopSorting || session !== currentSession)
-                    return;
-
-                [arr[j], arr[j+1]] =
-                [arr[j+1], arr[j]];
-
-                updateBar(j, arr[j], "purple");
-
-                updateBar(j+1, arr[j+1], "purple");
-
-                await sleep(300);
-
-                if(stopSorting || session !== currentSession)
-                    return;
-            }
-
-            updateBar(j, arr[j]);
-
-            updateBar(j+1, arr[j+1]);
-        }
-
-        updateBar(n-i-1, arr[n-i-1], "green");
-    }
-
-    explain("Sorting Completed!");
+function getSortingOperations() {
+  return createSortingOperations(
+    arrayValues,
+    elements.arrayContainer,
+    statistics,
+    elements.speedSlider,
+    () => isPaused,
+    () => shouldStopSorting,
+    updateMessage
+  );
 }
 
+async function startSorting() {
+  if (isSorting) return;
 
-// QUICK SORT
-async function partitionArr(left, right, session)
-{
-    let pivot = left;
-    explain(`Pivot selected: ${arr[pivot]}`);
+  isSorting = true;
+  isPaused = false;
+  shouldStopSorting = false;
+  const runNumber = ++currentRun;
+  statistics.reset();
+  startTime = performance.now();
+  updateTimer();
+  setSortingControls(true);
+  setPauseButtonText(false);
+  updateStatus("Sorting in progress", true);
 
-    updateBar(pivot, arr[pivot], "yellow");
+  const algorithm = sortingAlgorithms[elements.algorithmSelect.value];
+  updateMessage(`${algorithm.name} has started.`);
+  const completed = await algorithm.sort(getSortingOperations());
 
-    let i = left + 1;
+  if (shouldStopSorting || runNumber !== currentRun || !completed) return;
 
-    let j = right;
+  isSorting = false;
+  cancelAnimationFrame(timerFrame);
+  statistics.setTime(performance.now() - startTime);
+  clearBarColors(elements.arrayContainer);
+  const sortedIndexes = [];
 
-    while(i <= j)
-    {
-        if(stopSorting || session !== currentSession)
-            return;
+  for (let index = 0; index < arrayValues.length; index++) {
+    sortedIndexes.push(index);
+  }
 
-        while(i <= right && arr[pivot] >= arr[i])
-        {
-            if(await checkPaused(session))
-                return;
-
-            comparisons++;
-
-            updateStats();
-            explain(`Comparing ${arr[i]} with pivot ${arr[pivot]}`);
-
-            updateBar(i, arr[i], "red");
-
-            await sleep(200);
-
-            if(stopSorting || session !== currentSession)
-                return;
-
-            updateBar(i, arr[i]);
-
-            i++;
-        }
-
-        while(j >= left+1 && arr[pivot] < arr[j])
-        {
-            if(await checkPaused(session))
-                return;
-
-            comparisons++;
-
-            updateStats();
-            explain(`Comparing ${arr[j]} with pivot ${arr[pivot]}`);
-
-            updateBar(j, arr[j], "red");
-
-            await sleep(200);
-
-            if(stopSorting || session !== currentSession)
-                return;
-
-            updateBar(j, arr[j]);
-
-            j--;
-        }
-
-        if(i < j)
-        {
-            swaps++
-
-            updateStats();
-            explain(`Swapping ${arr[i]} and ${arr[j]}`);
-
-            [arr[i], arr[j]] =
-            [arr[j], arr[i]];
-
-            updateBar(i, arr[i], "purple");
-
-            updateBar(j, arr[j], "purple");
-
-            await sleep(300);
-
-            if(stopSorting || session !== currentSession)
-                return;
-
-            updateBar(i, arr[i]);
-
-            updateBar(j, arr[j]);
-        }
-    }
-    explain(`Placing pivot ${arr[pivot]} at correct position`);
-
-    swaps++;
-
-    updateStats();
-    [arr[pivot], arr[j]] =
-    [arr[j], arr[pivot]];
-
-    updateBar(pivot, arr[pivot]);
-
-    updateBar(j, arr[j], "green");
-
-    await sleep(300);
-
-    return j;
+  markBarsSorted(elements.arrayContainer, sortedIndexes);
+  setSortingControls(false);
+  updateStatus("Sorting complete", false);
+  updateMessage(`Complete - ${algorithm.name} sorted ${arrayValues.length} values in ${statistics.getTime().toFixed(2)} ms.`);
 }
 
-async function quickSort(left, right, session)
-{
-    if(stopSorting || session !== currentSession)
-        return;
+function togglePause() {
+  if (!isSorting) return;
 
-    if(left >= right)
-    {
-        if(left >= 0 && left < arr.length)
-        {
-            updateBar(left, arr[left], "green");
-        }
+  isPaused = !isPaused;
+  setPauseButtonText(isPaused);
+  if (isPaused) {
+    pauseStartedAt = performance.now();
+    updateStatus("Animation paused", false);
+    updateMessage("Animation paused. Press Resume whenever you are ready.");
+    return;
+  }
 
-        return;
-    }
-
-    let pivot = await partitionArr(left, right, session);
-
-    if(stopSorting || session !== currentSession)
-        return;
-
-    await quickSort(left, pivot-1, session);
-
-    if(stopSorting || session !== currentSession)
-        return;
-
-    await quickSort(pivot+1, right, session);
+  startTime += performance.now() - pauseStartedAt;
+  updateStatus("Sorting in progress", true);
+  updateMessage("Sorting resumed.");
 }
 
-async function startQuickSort(session)
-{
-    await quickSort(0, arr.length-1, session);
+function stopCurrentSort() {
+  shouldStopSorting = true;
+  currentRun++;
+  isSorting = false;
+  isPaused = false;
+  cancelAnimationFrame(timerFrame);
+  setSortingControls(false);
+  setPauseButtonText(false);
 }
 
-
-// MERGE SORT
-async function merge(start, mid, end, session)
-{
-    let dummy = [];
-
-    let i = start;
-
-    let j = mid + 1;
-
-    while(i <= mid && j <= end)
-    {
-        if(stopSorting || session !== currentSession)
-            return;
-
-        if(await checkPaused(session))
-            return;
-
-        comparisons++;
-
-        updateStats();
-        explain(`Comparing ${arr[i]} and ${arr[j]}`);
-        updateBar(i, arr[i], "orange");
-
-        updateBar(j, arr[j], "yellow");
-
-        await sleep(200);
-
-        if(arr[i] < arr[j])
-        {
-            explain(`${arr[i]} is smaller, adding into merged array`);
-            dummy.push(arr[i]);
-
-            i++;
-        }
-        else
-        {
-            explain(`${arr[j]} is smaller, adding into merged array`);
-            dummy.push(arr[j]);
-
-            j++;
-        }
-    }
-
-    while(i <= mid)
-    {
-        dummy.push(arr[i]);
-
-        i++;
-    }
-
-    while(j <= end)
-    {
-        dummy.push(arr[j]);
-
-        j++;
-    }
-
-    for(let k = start; k <= end; k++)
-    {
-        if(stopSorting || session !== currentSession)
-            return;
-
-        explain(`Writing ${dummy[k-start]} into main array`);
-        arr[k] = dummy[k-start];
-
-        updateBar(k, arr[k], "purple");
-
-        await sleep(150);
-
-        updateBar(k, arr[k]);
-    }
+function resetArray() {
+  stopCurrentSort();
+  arrayValues = [...originalArray];
+  statistics.reset();
+  drawBars(elements.arrayContainer, arrayValues);
+  updateMessage("Array reset to its original order.");
+  updateStatus("Ready to sort", false);
 }
 
-async function solve(start, end, session)
-{
-    if(stopSorting || session !== currentSession)
-        return;
-
-    if(start >= end)
-        return;
-
-    let mid =
-    Math.floor(start + (end-start)/2);
-
-    explain(`Dividing array from index ${start} to ${end}`);
-    await solve(start, mid, session);
-
-    if(stopSorting || session !== currentSession)
-        return;
-
-    await solve(mid+1, end, session);
-
-    if(stopSorting || session !== currentSession)
-        return;
-
-    explain(`now merging index ${start} to ${mid} and ${mid+1} to ${end}`);
-    await merge(start, mid, end, session);
+function updateSizeLabel() {
+  elements.sizeValue.textContent = elements.sizeSlider.value;
+  generateArray();
 }
 
-async function startMergeSort(session)
-{
-    await solve(0, arr.length-1, session);
-
-    for(let i = 0; i < arr.length; i++)
-    {
-        updateBar(i, arr[i], "green");
-    }
+function updateSpeedLabel() {
+  elements.speedValue.textContent = speedLabels[Number(elements.speedSlider.value)];
 }
 
+elements.algorithmSelect.addEventListener("change", updateAlgorithmInfo);
+elements.sizeSlider.addEventListener("input", updateSizeLabel);
+elements.speedSlider.addEventListener("input", updateSpeedLabel);
+elements.startButton.addEventListener("click", startSorting);
+elements.pauseButton.addEventListener("click", togglePause);
+elements.newArrayButton.addEventListener("click", generateArray);
+elements.resetButton.addEventListener("click", resetArray);
+elements.themeToggle.addEventListener("click", () => toggleTheme(elements.themeToggle));
 
-// PAUSE BUTTON
-pauseBtn.addEventListener("click", () => {
-
-    if(!isSorting) return;
-
-    isPaused = !isPaused;
-
-    pauseBtn.innerText =
-    isPaused ? "Resume" : "Pause";
-});
-
-
-// RESET BUTTON
-resetBtn.addEventListener("click", () => {
-
-    stopSorting = true;
-
-    currentSession++;
-
-    isPaused = false;
-
-    isSorting = false;
-
-    pauseBtn.innerText = "Pause";
-
-    startBtn.disabled = false;
-
-    generateArray();
-
-    explain("Array Reset Successfully!");
-
-    setTimeout(() => {
-
-        stopSorting = false;
-
-    }, 100);
-});
-
-
-// NEW ARRAY BUTTON
-newArrBtn.addEventListener("click", () => {
-
-    stopSorting = true;
-
-    currentSession++;
-
-    isPaused = false;
-
-    isSorting = false;
-
-    pauseBtn.innerText = "Pause";
-
-    startBtn.disabled = false;
-
-    generateArray();
-
-    explain("New Array Generated!");
-
-    setTimeout(() => {
-
-        stopSorting = false;
-
-    }, 100);
-});
-
-
-// START BUTTON
-startBtn.addEventListener("click", async () => {
-
-    if(isSorting) return;
-
-    isSorting = true;
-
-    stopSorting = false;
-
-    startBtn.disabled = true;
-
-    currentSession++;
-
-    let session = currentSession;
-
-    let selectedAlgo = algoSelect.value;
-
-    if(selectedAlgo === "Bubble Sort")
-    {
-        await bubbleSort(session);
-    }
-
-    else if(selectedAlgo === "Quick Sort")
-    {
-        await startQuickSort(session);
-    }
-
-    else if(selectedAlgo === "Merge Sort")
-    {
-        await startMergeSort(session);
-    }
-
-    if(session !== currentSession)
-        return;
-
-    isSorting = false;
-
-    startBtn.disabled = false;
-});
-
-
-algoSelect.addEventListener("change", () => {
-
-    renderCode();
-
-});
-
+loadTheme(elements.themeToggle);
+updateSpeedLabel();
 generateArray();
+updateAlgorithmInfo();

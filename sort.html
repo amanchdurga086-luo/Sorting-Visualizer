@@ -1,84 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>sort Visualizer</title>
-    <link rel="stylesheet" href="sort.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="An interactive sorting algorithm visualizer built with vanilla JavaScript.">
+  <title>SortLab | Sorting Visualizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sort.css">
 </head>
 <body>
-    <style>
-.code-line {
-    /* This forces the browser to show every space exactly as typed */
-    white-space: pre; 
-    font-family: monospace; /* Makes it look like code */
-}
-</style>
-    <div class="full">
+  <main class="app-shell">
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="SortLab home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Sort<span>Lab</span></span>
+      </a>
+      <div class="header-actions">
+        <span class="status-pill" id="statusText" role="status"><span></span> Ready to sort</span>
+        <button class="icon-button" id="themeToggle" type="button" aria-label="Switch to dark mode" title="Toggle colour theme">
+          <svg id="themeIcon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
+        </button>
+      </div>
+    </header>
 
-        <!-- header -->
-         <div class="top_bar">
-            <h1> <span id="headTop">Sorting</span> Visualizer</h1>
-            <select name="algo" id="algo">
-                <option >Bubble Sort</option>
-                <option >Quick Sort</option>
-                <option >Merge Sort</option>
-            </select>
+    <section class="hero" id="top">
+      <p class="eyebrow">ALGORITHM EXPLORER</p>
+      <h1>See every move.<br><em>Understand every sort.</em></h1>
+      <p class="hero-copy">Control the pace, inspect the logic, and compare the work each sorting algorithm performs in real time.</p>
+    </section>
 
-            <button id="newArrBtn">newArray</button>
-            <button id="startBtn">Start</button>
-            <button id="pauseBtn">Pause</button>
-            <button id="resetBtn">Reset</button>
-         </div>
+    <section class="control-panel" aria-label="Visualization controls">
+      <label class="control-field algorithm-field">
+        <span>Algorithm</span>
+        <select id="algorithmSelect" aria-label="Select sorting algorithm">
+          <option value="bubble">Bubble Sort</option>
+          <option value="selection">Selection Sort</option>
+          <option value="insertion">Insertion Sort</option>
+          <option value="merge">Merge Sort</option>
+          <option value="quick">Quick Sort</option>
+          <option value="heap">Heap Sort</option>
+        </select>
+      </label>
+      <label class="control-field range-field">
+        <span>Array size <output id="sizeValue">32</output></span>
+        <input id="sizeSlider" type="range" min="8" max="72" value="32" aria-label="Array size">
+      </label>
+      <label class="control-field range-field">
+        <span>Animation speed <output id="speedValue">Medium</output></span>
+        <input id="speedSlider" type="range" min="1" max="5" value="3" aria-label="Animation speed">
+      </label>
+      <div class="control-buttons">
+        <button class="button button-quiet" id="newArrayButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15-3M4 4v5h5m-5 4a8.1 8.1 0 0 0 15 3m1 4v-5h-5"/></svg>
+          New array
+        </button>
+        <button class="button button-primary" id="startButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg>
+          Start sorting
+        </button>
+        <button class="button button-quiet" id="pauseButton" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5v14M17 5v14"/></svg>
+          Pause
+        </button>
+        <button class="button button-quiet" id="resetButton" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+          Reset
+        </button>
+      </div>
+    </section>
 
-         <div class="mainContent">
-
-            <div class="leftContent">
-                <div class="visualizationPart">
-                <div id="arrayContainer"></div>
-                </div>
-
-                <div class="explanationPart">
-                    <h3>Explanation</h3>
-                    <p id="explanationText">
-                        <!-- explanation going on -->
-                    </p>
-                </div>
-            </div>
-
-            <div class="rightContent">
-
-                <div class="statusPart">
-                    <div class="statBox">
-                        <h4>Comparisons</h4>
-                        <p id="comparisonCount"></p>
-                    </div>
-
-                    <div class="statBox">
-                        <h4>Swaps</h4>
-                        <p id="swapCount"></p>
-                    </div>
-
-                    <div class="statBox">
-                        <h4>Time Complexity</h4>
-                        <p id="timeComplexity"></p>
-                    </div>
-                     <div class="statBox">
-                        <h4>Space Complexity</h4>
-                        <p id="spaceComplexity"></p>
-                    </div>
-                </div>
-
-                <div class="codePart">
-                    <h3>Code</h3>
-                    <div id="codeContainer"></div>
-                </div>
-
-            </div>
-         </div>
-
+    <section class="workspace">
+      <div class="visualizer-card">
+        <div class="card-heading">
+          <div><p class="eyebrow">LIVE VISUALIZATION</p><h2 id="visualizerTitle">Bubble Sort</h2></div>
+          <div class="legend" aria-label="Bar color legend">
+            <span><i class="legend-default"></i>Unsorted</span><span><i class="legend-active"></i>Comparing</span><span><i class="legend-swap"></i>Swapping</span><span><i class="legend-sorted"></i>Sorted</span>
+          </div>
         </div>
-    <script src="main.js"></script>
-    
+        <div class="chart-wrap">
+          <div class="chart-grid" aria-hidden="true"></div>
+          <div id="arrayContainer" class="array-container" aria-label="Array visualization" role="img"></div>
+        </div>
+        <p class="action-message" id="actionMessage" aria-live="polite">Generate an array, then press Start sorting to begin.</p>
+      </div>
+
+      <aside class="sidebar">
+        <section class="info-card algorithm-info">
+          <p class="eyebrow">ABOUT THE ALGORITHM</p>
+          <h2 id="algorithmName">Bubble Sort</h2>
+          <p id="algorithmDescription">Repeatedly compares adjacent values and swaps them when they are out of order. Larger values gradually bubble to the end.</p>
+          <div class="complexity-grid">
+            <div><span>Best</span><strong id="bestComplexity">O(n)</strong></div>
+            <div><span>Average</span><strong id="averageComplexity">O(n²)</strong></div>
+            <div><span>Worst</span><strong id="worstComplexity">O(n²)</strong></div>
+            <div><span>Space</span><strong id="spaceComplexity">O(1)</strong></div>
+          </div>
+        </section>
+
+        <section class="info-card statistics-card">
+          <div class="section-title"><p class="eyebrow">PERFORMANCE</p><span id="elapsedTime">0.00 ms</span></div>
+          <div class="statistics-grid">
+            <div class="stat"><span>Comparisons</span><strong id="comparisonCount">0</strong></div>
+            <div class="stat"><span>Swaps / writes</span><strong id="swapCount">0</strong></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="details-grid">
+      <article class="details-card">
+        <div class="section-title"><div><p class="eyebrow">PSEUDOCODE</p><h2>How it works</h2></div></div>
+        <pre id="codeContainer" class="code-block" aria-label="Algorithm pseudocode"></pre>
+      </article>
+      <article class="details-card learning-card">
+        <p class="eyebrow">CURRENT STEP</p>
+        <h2>Follow along</h2>
+        <p id="explanationText">Each colored bar represents one value in the array. Choose an algorithm to explore its approach.</p>
+        <div class="tip"><span>TIP</span><p>Use a smaller array and slower speed to observe each comparison in detail.</p></div>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
